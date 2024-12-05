@@ -1,0 +1,9 @@
+torch==2.2.0
+torchaudio==2.2.0
+tensorboard
+pandas
+scipy
+numpy
+scikit-learn
+tqdm
+transformers

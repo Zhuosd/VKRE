@@ -1,0 +1,444 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 600px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "id": "zip_15321", "label": "zip_15321", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_77", "label": "user_77", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_90049", "label": "zip_90049", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_23", "label": "user_23", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_28601", "label": "zip_28601", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_94", "label": "user_94", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_55113", "label": "zip_55113", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_20", "label": "user_20", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_49327", "label": "zip_49327", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_80", "label": "user_80", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_83", "label": "user_83", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "gender_F", "label": "gender_F", "shape": "dot", "size": 10, "type": "gender"}, {"color": "#97c2fc", "id": "age_25", "label": "age_25", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "occupation_2", "label": "occupation_2", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_94609", "label": "zip_94609", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_14", "label": "user_14", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "gender_M", "label": "gender_M", "shape": "dot", "size": 10, "type": "gender"}, {"color": "#97c2fc", "id": "age_35", "label": "age_35", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "occupation_0", "label": "occupation_0", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_60126", "label": "zip_60126", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_54902", "label": "zip_54902", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_63", "label": "user_63", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_7", "label": "user_7", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_10", "label": "user_10", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_16", "label": "user_16", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_29", "label": "user_29", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_30", "label": "user_30", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_55", "label": "user_55", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_56", "label": "user_56", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_62", "label": "user_62", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_65", "label": "user_65", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_74", "label": "user_74", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_76", "label": "user_76", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_91", "label": "user_91", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_99353", "label": "zip_99353", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_21", "label": "user_21", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_12", "label": "user_12", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_12", "label": "occupation_12", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_32793", "label": "zip_32793", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_93", "label": "user_93", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_17", "label": "occupation_17", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_95825", "label": "zip_95825", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_02215", "label": "zip_02215", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_38", "label": "user_38", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_73", "label": "user_73", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "age_18", "label": "age_18", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "occupation_4", "label": "occupation_4", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_53706", "label": "zip_53706", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_30350", "label": "zip_30350", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_57", "label": "user_57", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_98029", "label": "zip_98029", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_78", "label": "user_78", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_18", "label": "user_18", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_3", "label": "occupation_3", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "user_6", "label": "user_6", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "age_50", "label": "age_50", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "occupation_9", "label": "occupation_9", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_55117", "label": "zip_55117", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_31", "label": "user_31", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "age_56", "label": "age_56", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "occupation_7", "label": "occupation_7", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_06840", "label": "zip_06840", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_60181", "label": "zip_60181", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_67", "label": "user_67", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_17", "label": "user_17", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_1", "label": "occupation_1", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_95350", "label": "zip_95350", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_10543", "label": "zip_10543", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_40", "label": "user_40", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_49", "label": "user_49", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_77084", "label": "zip_77084", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_82", "label": "user_82", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_48380", "label": "zip_48380", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_19143", "label": "zip_19143", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_2", "label": "user_2", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_89", "label": "user_89", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_90", "label": "user_90", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_8", "label": "occupation_8", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "user_42", "label": "user_42", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_3", "label": "user_3", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_4", "label": "user_4", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_5", "label": "user_5", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_8", "label": "user_8", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_9", "label": "user_9", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_13", "label": "user_13", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_15", "label": "user_15", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_22", "label": "user_22", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_25", "label": "user_25", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_26", "label": "user_26", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_27", "label": "user_27", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_33", "label": "user_33", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_35", "label": "user_35", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_36", "label": "user_36", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_39", "label": "user_39", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_43", "label": "user_43", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_44", "label": "user_44", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_46", "label": "user_46", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_47", "label": "user_47", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_48", "label": "user_48", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_52", "label": "user_52", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_53", "label": "user_53", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_54", "label": "user_54", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_58", "label": "user_58", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_60", "label": "user_60", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_61", "label": "user_61", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_64", "label": "user_64", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_66", "label": "user_66", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_68", "label": "user_68", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_70", "label": "user_70", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_71", "label": "user_71", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_84", "label": "user_84", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_85", "label": "user_85", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_87", "label": "user_87", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_95", "label": "user_95", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "age_45", "label": "age_45", "shape": "dot", "size": 10, "type": "age"}, {"color": "#97c2fc", "id": "zip_98201", "label": "zip_98201", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_53703", "label": "zip_53703", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_11", "label": "occupation_11", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_10023", "label": "zip_10023", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_24", "label": "user_24", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_02143", "label": "zip_02143", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_69", "label": "user_69", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_85749", "label": "zip_85749", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_13", "label": "occupation_13", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_60640", "label": "zip_60640", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_81", "label": "user_81", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_5", "label": "occupation_5", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "user_34", "label": "user_34", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_02135", "label": "zip_02135", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_04093", "label": "zip_04093", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_11", "label": "user_11", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_32", "label": "user_32", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_19355", "label": "zip_19355", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_53140", "label": "zip_53140", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_16", "label": "occupation_16", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "user_45", "label": "user_45", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_02460", "label": "zip_02460", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_61820", "label": "zip_61820", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_02476", "label": "zip_02476", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_88", "label": "user_88", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_15116", "label": "zip_15116", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "user_41", "label": "user_41", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "zip_55421", "label": "zip_55421", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_96931", "label": "zip_96931", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_15", "label": "occupation_15", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "user_28", "label": "user_28", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_37", "label": "user_37", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_50", "label": "user_50", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_59", "label": "user_59", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_72", "label": "user_72", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_79", "label": "user_79", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "user_92", "label": "user_92", "shape": "dot", "size": 10, "type": "user"}, {"color": "#97c2fc", "id": "occupation_19", "label": "occupation_19", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_55413", "label": "zip_55413", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_70072", "label": "zip_70072", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_95370", "label": "zip_95370", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_95122", "label": "zip_95122", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_60614", "label": "zip_60614", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_94123", "label": "zip_94123", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_14", "label": "occupation_14", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_55803", "label": "zip_55803", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_72212", "label": "zip_72212", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_06810", "label": "zip_06810", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_20670", "label": "zip_20670", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_19130", "label": "zip_19130", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_94530", "label": "zip_94530", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_20", "label": "occupation_20", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_55455", "label": "zip_55455", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_72118", "label": "zip_72118", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_75602", "label": "zip_75602", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_48360", "label": "zip_48360", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_61614", "label": "zip_61614", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_98133", "label": "zip_98133", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_60440", "label": "zip_60440", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_30303", "label": "zip_30303", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_14607", "label": "zip_14607", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_23112", "label": "zip_23112", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_44243", "label": "zip_44243", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_56723", "label": "zip_56723", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "occupation_18", "label": "occupation_18", "shape": "dot", "size": 10, "type": "occupation"}, {"color": "#97c2fc", "id": "zip_57706", "label": "zip_57706", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_95008", "label": "zip_95008", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_22903", "label": "zip_22903", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_55303", "label": "zip_55303", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_94110", "label": "zip_94110", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_93304", "label": "zip_93304", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_01609", "label": "zip_01609", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_11413", "label": "zip_11413", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_98103", "label": "zip_98103", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_94305", "label": "zip_94305", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_94945", "label": "zip_94945", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_66212", "label": "zip_66212", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_98105", "label": "zip_98105", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_07650", "label": "zip_07650", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_24502", "label": "zip_24502", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_33407", "label": "zip_33407", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_02482", "label": "zip_02482", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_92107", "label": "zip_92107", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_55122", "label": "zip_55122", "shape": "dot", "size": 10, "type": "zip"}, {"color": "#97c2fc", "id": "zip_98052", "label": "zip_98052", "shape": "dot", "size": 10, "type": "zip"}]);
+                  edges = new vis.DataSet([{"from": "zip_15321", "relation": "has_zip", "to": "user_77", "width": 1}, {"from": "zip_90049", "relation": "has_zip", "to": "user_23", "width": 1}, {"from": "zip_28601", "relation": "has_zip", "to": "user_94", "width": 1}, {"from": "zip_55113", "relation": "has_zip", "to": "user_20", "width": 1}, {"from": "zip_49327", "relation": "has_zip", "to": "user_80", "width": 1}, {"from": "user_83", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_83", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_83", "relation": "has_occupation", "to": "occupation_2", "width": 1}, {"from": "user_83", "relation": "has_zip", "to": "zip_94609", "width": 1}, {"from": "user_14", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_14", "relation": "has_age", "to": "age_35", "width": 1}, {"from": "user_14", "relation": "has_occupation", "to": "occupation_0", "width": 1}, {"from": "user_14", "relation": "has_zip", "to": "zip_60126", "width": 1}, {"from": "zip_54902", "relation": "has_zip", "to": "user_63", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_7", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_10", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_16", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_23", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_29", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_30", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_55", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_56", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_62", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_65", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_74", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_76", "width": 1}, {"from": "age_35", "relation": "has_age", "to": "user_91", "width": 1}, {"from": "zip_99353", "relation": "has_zip", "to": "user_21", "width": 1}, {"from": "user_12", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_12", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_12", "relation": "has_occupation", "to": "occupation_12", "width": 1}, {"from": "user_12", "relation": "has_zip", "to": "zip_32793", "width": 1}, {"from": "user_93", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_93", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_93", "relation": "has_occupation", "to": "occupation_17", "width": 1}, {"from": "user_93", "relation": "has_zip", "to": "zip_95825", "width": 1}, {"from": "zip_02215", "relation": "has_zip", "to": "user_38", "width": 1}, {"from": "user_73", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_73", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_73", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_73", "relation": "has_zip", "to": "zip_53706", "width": 1}, {"from": "zip_30350", "relation": "has_zip", "to": "user_57", "width": 1}, {"from": "zip_98029", "relation": "has_zip", "to": "user_78", "width": 1}, {"from": "user_18", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_18", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_18", "relation": "has_occupation", "to": "occupation_3", "width": 1}, {"from": "user_18", "relation": "has_zip", "to": "zip_95825", "width": 1}, {"from": "user_6", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_6", "relation": "has_age", "to": "age_50", "width": 1}, {"from": "user_6", "relation": "has_occupation", "to": "occupation_9", "width": 1}, {"from": "user_6", "relation": "has_zip", "to": "zip_55117", "width": 1}, {"from": "user_31", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_31", "relation": "has_age", "to": "age_56", "width": 1}, {"from": "user_31", "relation": "has_occupation", "to": "occupation_7", "width": 1}, {"from": "user_31", "relation": "has_zip", "to": "zip_06840", "width": 1}, {"from": "zip_60181", "relation": "has_zip", "to": "user_67", "width": 1}, {"from": "user_17", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_17", "relation": "has_age", "to": "age_50", "width": 1}, {"from": "user_17", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_17", "relation": "has_zip", "to": "zip_95350", "width": 1}, {"from": "zip_10543", "relation": "has_zip", "to": "user_40", "width": 1}, {"from": "user_49", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_49", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_49", "relation": "has_occupation", "to": "occupation_12", "width": 1}, {"from": "user_49", "relation": "has_zip", "to": "zip_77084", "width": 1}, {"from": "user_82", "relation": "has_gender", "to": "gender_M", "width": 1}, {"from": "user_82", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_82", "relation": "has_occupation", "to": "occupation_17", "width": 1}, {"from": "user_82", "relation": "has_zip", "to": "zip_48380", "width": 1}, {"from": "zip_19143", "relation": "has_zip", "to": "user_30", "width": 1}, {"from": "age_56", "relation": "has_age", "to": "user_2", "width": 1}, {"from": "age_56", "relation": "has_age", "to": "user_80", "width": 1}, {"from": "age_56", "relation": "has_age", "to": "user_89", "width": 1}, {"from": "age_56", "relation": "has_age", "to": "user_90", "width": 1}, {"from": "occupation_8", "relation": "has_occupation", "to": "user_42", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_2", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_3", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_4", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_5", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_7", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_8", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_9", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_13", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_15", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_20", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_21", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_22", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_23", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_25", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_26", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_27", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_29", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_33", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_35", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_36", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_39", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_40", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_42", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_43", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_44", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_46", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_47", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_48", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_52", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_53", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_54", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_56", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_57", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_58", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_60", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_61", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_63", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_64", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_65", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_66", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_68", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_70", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_71", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_74", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_76", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_77", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_80", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_84", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_85", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_87", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_90", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_91", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_94", "width": 1}, {"from": "gender_M", "relation": "has_gender", "to": "user_95", "width": 1}, {"from": "user_95", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_95", "relation": "has_occupation", "to": "occupation_0", "width": 1}, {"from": "user_95", "relation": "has_zip", "to": "zip_98201", "width": 1}, {"from": "user_70", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_70", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_70", "relation": "has_zip", "to": "zip_53703", "width": 1}, {"from": "occupation_11", "relation": "has_occupation", "to": "user_27", "width": 1}, {"from": "zip_10023", "relation": "has_zip", "to": "user_24", "width": 1}, {"from": "zip_02143", "relation": "has_zip", "to": "user_69", "width": 1}, {"from": "user_89", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_89", "relation": "has_occupation", "to": "occupation_9", "width": 1}, {"from": "user_89", "relation": "has_zip", "to": "zip_85749", "width": 1}, {"from": "occupation_13", "relation": "has_occupation", "to": "user_90", "width": 1}, {"from": "zip_60640", "relation": "has_zip", "to": "user_81", "width": 1}, {"from": "occupation_5", "relation": "has_occupation", "to": "user_67", "width": 1}, {"from": "user_34", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_34", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_34", "relation": "has_occupation", "to": "occupation_0", "width": 1}, {"from": "user_34", "relation": "has_zip", "to": "zip_02135", "width": 1}, {"from": "zip_04093", "relation": "has_zip", "to": "user_11", "width": 1}, {"from": "user_32", "relation": "has_gender", "to": "gender_F", "width": 1}, {"from": "user_32", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_32", "relation": "has_occupation", "to": "occupation_0", "width": 1}, {"from": "user_32", "relation": "has_zip", "to": "zip_19355", "width": 1}, {"from": "zip_53140", "relation": "has_zip", "to": "user_84", "width": 1}, {"from": "occupation_16", "relation": "has_occupation", "to": "user_2", "width": 1}, {"from": "occupation_16", "relation": "has_occupation", "to": "user_21", "width": 1}, {"from": "occupation_16", "relation": "has_occupation", "to": "user_45", "width": 1}, {"from": "zip_02460", "relation": "has_zip", "to": "user_4", "width": 1}, {"from": "zip_61820", "relation": "has_zip", "to": "user_39", "width": 1}, {"from": "zip_02476", "relation": "has_zip", "to": "user_88", "width": 1}, {"from": "zip_15116", "relation": "has_zip", "to": "user_41", "width": 1}, {"from": "zip_55421", "relation": "has_zip", "to": "user_33", "width": 1}, {"from": "user_53", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_53", "relation": "has_occupation", "to": "occupation_0", "width": 1}, {"from": "user_53", "relation": "has_zip", "to": "zip_96931", "width": 1}, {"from": "occupation_15", "relation": "has_occupation", "to": "user_3", "width": 1}, {"from": "occupation_15", "relation": "has_occupation", "to": "user_22", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_10", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_11", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_16", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_24", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_28", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_30", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_37", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_38", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_41", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_45", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_50", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_55", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_59", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_62", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_67", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_69", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_72", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_78", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_79", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_81", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_88", "width": 1}, {"from": "gender_F", "relation": "has_gender", "to": "user_92", "width": 1}, {"from": "occupation_19", "relation": "has_occupation", "to": "user_46", "width": 1}, {"from": "occupation_19", "relation": "has_occupation", "to": "user_57", "width": 1}, {"from": "zip_55413", "relation": "has_zip", "to": "user_59", "width": 1}, {"from": "zip_55413", "relation": "has_zip", "to": "user_76", "width": 1}, {"from": "user_59", "relation": "has_age", "to": "age_50", "width": 1}, {"from": "user_59", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "zip_70072", "relation": "has_zip", "to": "user_2", "width": 1}, {"from": "zip_95370", "relation": "has_zip", "to": "user_10", "width": 1}, {"from": "user_61", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_61", "relation": "has_occupation", "to": "occupation_17", "width": 1}, {"from": "user_61", "relation": "has_zip", "to": "zip_95122", "width": 1}, {"from": "user_78", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_78", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_43", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_43", "relation": "has_occupation", "to": "occupation_12", "width": 1}, {"from": "user_43", "relation": "has_zip", "to": "zip_60614", "width": 1}, {"from": "user_36", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_36", "relation": "has_occupation", "to": "occupation_3", "width": 1}, {"from": "user_36", "relation": "has_zip", "to": "zip_94123", "width": 1}, {"from": "user_20", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_20", "relation": "has_occupation", "to": "occupation_14", "width": 1}, {"from": "zip_55803", "relation": "has_zip", "to": "user_65", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_16", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_23", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_40", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_72", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_79", "width": 1}, {"from": "occupation_0", "relation": "has_occupation", "to": "user_81", "width": 1}, {"from": "zip_72212", "relation": "has_zip", "to": "user_52", "width": 1}, {"from": "user_7", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_7", "relation": "has_zip", "to": "zip_06810", "width": 1}, {"from": "user_16", "relation": "has_zip", "to": "zip_20670", "width": 1}, {"from": "user_27", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_27", "relation": "has_zip", "to": "zip_19130", "width": 1}, {"from": "zip_94530", "relation": "has_zip", "to": "user_74", "width": 1}, {"from": "user_5", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_5", "relation": "has_occupation", "to": "occupation_20", "width": 1}, {"from": "user_5", "relation": "has_zip", "to": "zip_55455", "width": 1}, {"from": "user_80", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_60", "relation": "has_age", "to": "age_50", "width": 1}, {"from": "user_60", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_60", "relation": "has_zip", "to": "zip_72118", "width": 1}, {"from": "zip_75602", "relation": "has_zip", "to": "user_46", "width": 1}, {"from": "zip_48360", "relation": "has_zip", "to": "user_87", "width": 1}, {"from": "user_65", "relation": "has_occupation", "to": "occupation_12", "width": 1}, {"from": "user_9", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_9", "relation": "has_occupation", "to": "occupation_17", "width": 1}, {"from": "user_9", "relation": "has_zip", "to": "zip_61614", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_4", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_15", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_24", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_26", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_29", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_30", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_76", "width": 1}, {"from": "occupation_7", "relation": "has_occupation", "to": "user_91", "width": 1}, {"from": "user_38", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_38", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_50", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_50", "relation": "has_occupation", "to": "occupation_2", "width": 1}, {"from": "user_50", "relation": "has_zip", "to": "zip_98133", "width": 1}, {"from": "user_56", "relation": "has_occupation", "to": "occupation_20", "width": 1}, {"from": "user_56", "relation": "has_zip", "to": "zip_60440", "width": 1}, {"from": "user_46", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_94", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_94", "relation": "has_occupation", "to": "occupation_17", "width": 1}, {"from": "user_58", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_58", "relation": "has_occupation", "to": "occupation_2", "width": 1}, {"from": "user_58", "relation": "has_zip", "to": "zip_30303", "width": 1}, {"from": "zip_14607", "relation": "has_zip", "to": "user_28", "width": 1}, {"from": "user_26", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_26", "relation": "has_zip", "to": "zip_23112", "width": 1}, {"from": "user_92", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_92", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_92", "relation": "has_zip", "to": "zip_44243", "width": 1}, {"from": "user_4", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_54", "relation": "has_age", "to": "age_50", "width": 1}, {"from": "user_54", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_54", "relation": "has_zip", "to": "zip_56723", "width": 1}, {"from": "user_66", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_66", "relation": "has_occupation", "to": "occupation_18", "width": 1}, {"from": "user_66", "relation": "has_zip", "to": "zip_57706", "width": 1}, {"from": "user_71", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_71", "relation": "has_occupation", "to": "occupation_14", "width": 1}, {"from": "user_71", "relation": "has_zip", "to": "zip_95008", "width": 1}, {"from": "user_15", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_15", "relation": "has_zip", "to": "zip_22903", "width": 1}, {"from": "user_22", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_22", "relation": "has_zip", "to": "zip_53706", "width": 1}, {"from": "occupation_12", "relation": "has_occupation", "to": "user_8", "width": 1}, {"from": "occupation_12", "relation": "has_occupation", "to": "user_55", "width": 1}, {"from": "zip_55303", "relation": "has_zip", "to": "user_55", "width": 1}, {"from": "user_63", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_63", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_45", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_45", "relation": "has_zip", "to": "zip_94110", "width": 1}, {"from": "user_69", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_69", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_13", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_13", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_13", "relation": "has_zip", "to": "zip_93304", "width": 1}, {"from": "user_25", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_25", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_25", "relation": "has_zip", "to": "zip_01609", "width": 1}, {"from": "user_87", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_87", "relation": "has_occupation", "to": "occupation_14", "width": 1}, {"from": "user_10", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_21", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "zip_53706", "relation": "has_zip", "to": "user_64", "width": 1}, {"from": "zip_53706", "relation": "has_zip", "to": "user_68", "width": 1}, {"from": "user_24", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_8", "relation": "has_age", "to": "age_25", "width": 1}, {"from": "user_8", "relation": "has_zip", "to": "zip_11413", "width": 1}, {"from": "user_79", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_79", "relation": "has_zip", "to": "zip_98103", "width": 1}, {"from": "zip_94305", "relation": "has_zip", "to": "user_47", "width": 1}, {"from": "user_57", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "zip_94945", "relation": "has_zip", "to": "user_85", "width": 1}, {"from": "zip_55117", "relation": "has_zip", "to": "user_3", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_3", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_11", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_28", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_37", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_42", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_48", "width": 1}, {"from": "age_25", "relation": "has_age", "to": "user_81", "width": 1}, {"from": "zip_66212", "relation": "has_zip", "to": "user_37", "width": 1}, {"from": "user_62", "relation": "has_occupation", "to": "occupation_3", "width": 1}, {"from": "user_62", "relation": "has_zip", "to": "zip_98105", "width": 1}, {"from": "user_68", "relation": "has_age", "to": "age_18", "width": 1}, {"from": "user_68", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "zip_07650", "relation": "has_zip", "to": "user_91", "width": 1}, {"from": "user_88", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_88", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "occupation_3", "relation": "has_occupation", "to": "user_33", "width": 1}, {"from": "user_90", "relation": "has_zip", "to": "zip_85749", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_39", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_41", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_47", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_52", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_64", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_77", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_84", "width": 1}, {"from": "age_18", "relation": "has_age", "to": "user_85", "width": 1}, {"from": "user_41", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "user_42", "relation": "has_zip", "to": "zip_24502", "width": 1}, {"from": "user_33", "relation": "has_age", "to": "age_45", "width": 1}, {"from": "user_85", "relation": "has_occupation", "to": "occupation_4", "width": 1}, {"from": "zip_33407", "relation": "has_zip", "to": "user_29", "width": 1}, {"from": "age_45", "relation": "has_age", "to": "user_35", "width": 1}, {"from": "age_45", "relation": "has_age", "to": "user_40", "width": 1}, {"from": "age_45", "relation": "has_age", "to": "user_44", "width": 1}, {"from": "age_45", "relation": "has_age", "to": "user_72", "width": 1}, {"from": "zip_02482", "relation": "has_zip", "to": "user_35", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_39", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_47", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_48", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_52", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_77", "width": 1}, {"from": "occupation_4", "relation": "has_occupation", "to": "user_84", "width": 1}, {"from": "user_48", "relation": "has_zip", "to": "zip_92107", "width": 1}, {"from": "user_72", "relation": "has_zip", "to": "zip_55122", "width": 1}, {"from": "age_50", "relation": "has_age", "to": "user_67", "width": 1}, {"from": "user_35", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_74", "relation": "has_occupation", "to": "occupation_14", "width": 1}, {"from": "user_11", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "user_28", "relation": "has_occupation", "to": "occupation_1", "width": 1}, {"from": "zip_98052", "relation": "has_zip", "to": "user_44", "width": 1}, {"from": "occupation_1", "relation": "has_occupation", "to": "user_64", "width": 1}, {"from": "occupation_17", "relation": "has_occupation", "to": "user_44", "width": 1}, {"from": "user_37", "relation": "has_occupation", "to": "occupation_9", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
