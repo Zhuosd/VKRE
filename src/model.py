@@ -55,18 +55,24 @@ class GIP(nn.Module):
 
     def get_user_emb(self, users):
         user_emb = torch.mean(self.embedding_user(self.user_fea_index[users]), dim=1)
-        return (torch.mul(user_emb, self.config.ens_ratio) + torch.mul(self.spk_emb[users],
-                                                                           (1 - self.config.ens_ratio)))
+        return (torch.mul(user_emb, self.config.ens_ratio) + torch.mul(self.spk_emb[users], (1 - self.config.ens_ratio)))
 
     def get_item_emb(self, items):
         if self.config.dataset == 'coat':
             item_fea_emb = self.embedding_item(self.item_fea_index[items])
+            return torch.mean(item_fea_emb, dim=-2)
         elif self.config.dataset == 'movielensmini':
-            item_fea_emb = self.embedding_item(self.item_fea_index[items] * self.item_fea_mask[items])            
+            mask = self.item_fea_mask[items].unsqueeze(-1).float()
+            item_fea_emb = self.embedding_item(self.item_fea_index[items] * self.item_fea_mask[items]) * mask
         elif self.config.dataset == 'movielens1m':
-            item_fea_emb = self.embedding_item(self.item_fea_index[items] * self.item_fea_mask[items])
+            mask = self.item_fea_mask[items].unsqueeze(-1).float()
+            item_fea_emb = self.embedding_item(self.item_fea_index[items] * self.item_fea_mask[items]) * mask
+        elif self.config.dataset == 'music4all':
+            mask = self.item_fea_mask[items].unsqueeze(-1).float()
+            item_fea_emb = self.embedding_item(self.item_fea_index[items] * self.item_fea_mask[items]) * mask
 
-        return torch.mean(item_fea_emb, dim=-2)
+        denom = mask.sum(dim=-2).clamp_min(1.0)
+        return item_fea_emb.sum(dim=-2) / denom
 
     def getRating(self, users):
         all_users, all_items = self.graph_propagate(dr=False)

@@ -203,6 +203,25 @@ def get_data_info(dataset, device):
 
         return data_info, item_fea_index, mask
 
+    elif dataset == 'music4all':
+        with open(f'../data/music4all/info.txt', 'r') as f:
+            data_info['n_users'], data_info['n_items'] = [int(n) for n in f.readline().strip('\n').split(' ')]
+
+        item_features = []
+        with open('../data/music4all/item_features.json', 'r') as f:
+            raw_features = json.load(f)
+        for item_id in range(data_info['n_items']):
+            item_features.append(torch.tensor(raw_features[str(item_id)], dtype=torch.long))
+
+        padding_value = 100000
+        item_fea_index = torch.nn.utils.rnn.pad_sequence(item_features, batch_first=True, padding_value=padding_value)
+        mask = torch.tensor(np.array(item_fea_index != padding_value).astype(int)).to(device)
+        item_fea_index = item_fea_index.to(device)
+        max_feature_id = int(item_fea_index[item_fea_index != padding_value].max().item())
+        data_info['n_item_fea'] = max_feature_id - data_info['n_items'] + 1
+
+        return data_info, item_fea_index, mask
+
 def get_user_fea_index(dataset, data_info, device):
     with open(f'./user_pred_labels_{dataset}.json', 'r') as f:
         user_pred_labels = json.load(f)

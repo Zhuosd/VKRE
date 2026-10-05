@@ -166,6 +166,8 @@ if __name__ == '__main__':
         data_info, item_fea_index, item_fea_mask = get_data_info(args.dataset, device)
     elif args.dataset == 'movielens1m':
         data_info, item_fea_index, item_fea_mask = get_data_info(args.dataset, device)
+    elif args.dataset == 'music4all':
+        data_info, item_fea_index, item_fea_mask = get_data_info(args.dataset, device)
 
     user_fea_index = get_user_fea_index(args.dataset, data_info, device)
 

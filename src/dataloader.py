@@ -2,7 +2,6 @@ import os
 import json
 import torch
 import logging
-import torchaudio
 import numpy as np
 from time import time
 import scipy.sparse as sp
@@ -10,7 +9,7 @@ from scipy.sparse import csr_matrix
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
-#  AudioDataset------------------------------
+#  ---------------------AudioDataset--------------------------
 class AudioDataset(Dataset):
     def __init__(self, datalist, audio_path, target_sample_rate, transformation=None):
         self.datalist = datalist
@@ -24,6 +23,8 @@ class AudioDataset(Dataset):
         return len(self.datalist)
 
     def __getitem__(self, idx):
+        import torchaudio
+
         user_id = self.datalist[idx][0]
         item_id = self.datalist[idx][1]
         audio_file_path = os.path.join(self.audio_path, self.datalist[idx][2])
@@ -46,6 +47,8 @@ class AudioDataset(Dataset):
         return age, gender
 
     def _resample(self, waveform, sample_rate):
+        import torchaudio
+
         resampler = torchaudio.transforms.Resample(sample_rate, self.target_sample_rate)
 
         return resampler(waveform)
@@ -74,7 +77,7 @@ def clf_collate_fn(batch):
 
     return users, items, audios.squeeze(dim=1), age_labels, gender_labels
 
-#  GraphDataset------------------------------
+#  --------------------GraphDataset---------------------
 class GraphDataset(Dataset):
     def __init__(self, datalist):
         self.datalist = datalist
